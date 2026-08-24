@@ -1,4 +1,4 @@
-from flask import Flask, redirect
+from flask import Flask, redirect, request, jsonify
 import mercadopago
 import requests
 
@@ -56,7 +56,6 @@ def testar_whatsapp():
         "apikey": EVOLUTION_TOKEN
     }
     
-    # ATENÇÃO: Verifique se o seu número está com DDI (55) e DDD corretos
     payload = {
         "number": "554731500105", 
         "text": "Olá Juliano! O bot do Enjoy Web integrado com a Evolution API está funcionando perfeitamente 🚀"
@@ -68,6 +67,54 @@ def testar_whatsapp():
         return "<h1 style='color: green; text-align: center; margin-top: 50px;'>Mensagem enviada com sucesso no WhatsApp! 📱</h1>"
     else:
         return f"<h1>Erro ao enviar mensagem:</h1><p>{response.text}</p>", 400
+
+# Rota que recebe as mensagens do WhatsApp (Webhook da Evolution)
+@app.route("/webhook-whatsapp", methods=['POST'])
+def webhook_whatsapp():
+    data = request.json
+    
+    try:
+        # Extrai os dados da mensagem recebida
+        message_data = data.get('data', {})
+        sender_phone = message_data.get('key', {}).get('remoteJid')
+        
+        # Evita responder a si mesmo (mensagens enviadas pelo próprio bot)
+        from_me = message_data.get('key', {}).get('fromMe', False)
+        
+        if sender_phone and not from_me:
+            # Dispara os botões interativos de boas-vindas
+            enviar_botoes_boas_vindas(sender_phone)
+            
+    except Exception as e:
+        print(f"Erro ao processar webhook do whatsapp: {e}")
+        
+    return jsonify({"status": "success"}), 200
+
+def enviar_botoes_boas_vindas(phone_number):
+    url = f"{EVOLUTION_URL}/message/sendButtons/{INSTANCE_NAME}"
+    headers = {
+        "Content-Type": "application/json",
+        "apikey": EVOLUTION_TOKEN
+    }
+    
+    payload = {
+        "number": phone_number,
+        "title": "Bem-vindo ao Enjoy Web! 🚀",
+        "description": "Que bom ter você por aqui. Como podemos te ajudar hoje?",
+        "footer": "Escolha uma das opções abaixo:",
+        "buttons": [
+            {
+                "buttonId": "btn_comprar",
+                "buttonText": {"displayText": "🟢 Quero Comprar"}
+            },
+            {
+                "buttonId": "btn_duvida",
+                "buttonText": {"displayText": "💬 Falar com Suporte"}
+            }
+        ]
+    }
+    
+    requests.post(url, json=payload, headers=headers)
 
 # Rotas de Retorno do Mercado Pago
 @app.route("/sucesso")
