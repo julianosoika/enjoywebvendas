@@ -71,11 +71,16 @@ def testar_whatsapp():
 @app.route("/webhook-whatsapp", methods=['POST'])
 def webhook_whatsapp():
     data = request.json
-    print("WEBHOOK RECEBIDO:", data)  # Vai forçar aparecer nos logs do Easypanel
+    print("WEBHOOK RECEBIDO:", data)
     
     try:
         message_data = data.get('data', {})
-        sender_phone = message_data.get('key', {}).get('remoteJid')
+        sender_phone = message_data.get('key', {}).get('remoteJid', '')
+        
+        # Ignora se for mensagem de grupo (@g.us)
+        if "@g.us" in sender_phone:
+            return jsonify({"status": "ignored_group"}), 200
+            
         from_me = message_data.get('key', {}).get('fromMe', False)
         
         if sender_phone and not from_me:
@@ -87,26 +92,31 @@ def webhook_whatsapp():
     return jsonify({"status": "success"}), 200
 
 def enviar_botoes_boas_vindas(phone_number):
-    url = f"{EVOLUTION_URL}/message/sendText/{INSTANCE_NAME}"
+    url = f"{EVOLUTION_URL}/message/sendButtons/{INSTANCE_NAME}"
     headers = {
         "Content-Type": "application/json",
         "apikey": EVOLUTION_TOKEN
     }
     
-    # Enviando como texto limpo estruturado para evitar rejeição de botões da versão da API
-    texto = (
-        "Bem-vindo ao Enjoy Web! 🚀\n\n"
-        "Que bom ter você por aqui. Como podemos te ajudar hoje?\n\n"
-        "1️⃣ Digite *1* para Quero Comprar\n"
-        "2️⃣ Digite *2* para Falar com Suporte"
-    )
-    
     payload = {
         "number": phone_number,
-        "text": texto
+        "title": "Bem-vindo ao Enjoy Web! 🚀",
+        "description": "Que bom ter você por aqui. Como podemos te ajudar hoje?",
+        "footer": "Escolha uma das opções abaixo:",
+        "buttons": [
+            {
+                "buttonId": "btn_comprar",
+                "buttonText": {"displayText": "🟢 Quero Comprar"}
+            },
+            {
+                "buttonId": "btn_duvida",
+                "buttonText": {"displayText": "💬 Falar com Suporte"}
+            }
+        ]
     }
     
-    requests.post(url, json=payload, headers=headers)
+    response = requests.post(url, json=payload, headers=headers)
+    print("RESPOSTA ENVIO BOTÕES:", response.text)
 
 @app.route("/sucesso")
 def pagamento_sucesso():
