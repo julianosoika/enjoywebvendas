@@ -92,31 +92,26 @@ def webhook_whatsapp():
     return jsonify({"status": "success"}), 200
 
 def enviar_botoes_boas_vindas(phone_number):
-    url = f"{EVOLUTION_URL}/message/sendButtons/{INSTANCE_NAME}"
+    url = f"{EVOLUTION_URL}/message/sendText/{INSTANCE_NAME}"
     headers = {
         "Content-Type": "application/json",
         "apikey": EVOLUTION_TOKEN
     }
     
+    texto = (
+        "Bem-vindo ao Enjoy Web! 🚀\n\n"
+        "Que bom ter você por aqui. Como podemos te ajudar hoje?\n\n"
+        "1️⃣ Digite *1* para Quero Comprar\n"
+        "2️⃣ Digite *2* para Falar com Suporte"
+    )
+    
     payload = {
         "number": phone_number,
-        "title": "Bem-vindo ao Enjoy Web! 🚀",
-        "description": "Que bom ter você por aqui. Como podemos te ajudar hoje?",
-        "footer": "Escolha uma das opções abaixo:",
-        "buttons": [
-            {
-                "buttonId": "btn_comprar",
-                "buttonText": {"displayText": "🟢 Quero Comprar"}
-            },
-            {
-                "buttonId": "btn_duvida",
-                "buttonText": {"displayText": "💬 Falar com Suporte"}
-            }
-        ]
+        "text": texto
     }
     
     response = requests.post(url, json=payload, headers=headers)
-    print("RESPOSTA ENVIO BOTÕES:", response.text)
+    print("RESPOSTA ENVIO MENSAGEM:", response.text)
 
 @app.route("/sucesso")
 def pagamento_sucesso():
