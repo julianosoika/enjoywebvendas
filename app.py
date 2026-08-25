@@ -63,26 +63,22 @@ def testar_whatsapp():
     
     response = requests.post(url, json=payload, headers=headers)
     
-    if response.status_code == 201 or response.status_code == 200:
+    if response.status_code in [200, 201]:
         return "<h1 style='color: green; text-align: center; margin-top: 50px;'>Mensagem enviada com sucesso no WhatsApp! 📱</h1>"
     else:
         return f"<h1>Erro ao enviar mensagem:</h1><p>{response.text}</p>", 400
 
-# Rota que recebe as mensagens do WhatsApp (Webhook da Evolution)
 @app.route("/webhook-whatsapp", methods=['POST'])
 def webhook_whatsapp():
     data = request.json
+    print("WEBHOOK RECEBIDO:", data)  # Vai forçar aparecer nos logs do Easypanel
     
     try:
-        # Extrai os dados da mensagem recebida
         message_data = data.get('data', {})
         sender_phone = message_data.get('key', {}).get('remoteJid')
-        
-        # Evita responder a si mesmo (mensagens enviadas pelo próprio bot)
         from_me = message_data.get('key', {}).get('fromMe', False)
         
         if sender_phone and not from_me:
-            # Dispara os botões interativos de boas-vindas
             enviar_botoes_boas_vindas(sender_phone)
             
     except Exception as e:
@@ -91,32 +87,27 @@ def webhook_whatsapp():
     return jsonify({"status": "success"}), 200
 
 def enviar_botoes_boas_vindas(phone_number):
-    url = f"{EVOLUTION_URL}/message/sendButtons/{INSTANCE_NAME}"
+    url = f"{EVOLUTION_URL}/message/sendText/{INSTANCE_NAME}"
     headers = {
         "Content-Type": "application/json",
         "apikey": EVOLUTION_TOKEN
     }
     
+    # Enviando como texto limpo estruturado para evitar rejeição de botões da versão da API
+    texto = (
+        "Bem-vindo ao Enjoy Web! 🚀\n\n"
+        "Que bom ter você por aqui. Como podemos te ajudar hoje?\n\n"
+        "1️⃣ Digite *1* para Quero Comprar\n"
+        "2️⃣ Digite *2* para Falar com Suporte"
+    )
+    
     payload = {
         "number": phone_number,
-        "title": "Bem-vindo ao Enjoy Web! 🚀",
-        "description": "Que bom ter você por aqui. Como podemos te ajudar hoje?",
-        "footer": "Escolha uma das opções abaixo:",
-        "buttons": [
-            {
-                "buttonId": "btn_comprar",
-                "buttonText": {"displayText": "🟢 Quero Comprar"}
-            },
-            {
-                "buttonId": "btn_duvida",
-                "buttonText": {"displayText": "💬 Falar com Suporte"}
-            }
-        ]
+        "text": texto
     }
     
     requests.post(url, json=payload, headers=headers)
 
-# Rotas de Retorno do Mercado Pago
 @app.route("/sucesso")
 def pagamento_sucesso():
     return "<h1 style='color: green; text-align: center; margin-top: 50px;'>Pagamento Aprovado com Sucesso! 🎉</h1>"
